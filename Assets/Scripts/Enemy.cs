@@ -14,6 +14,7 @@ public class Enemy : MonoBehaviour
     public GameManager manager;
     public Transform target;
     public BoxCollider meleeArea;
+    public BoxCollider weaponArea;
     public GameObject bullet; 
     public GameObject[] coins;
     public bool isChase;
@@ -23,7 +24,8 @@ public class Enemy : MonoBehaviour
 
     public Rigidbody rigid;
     public BoxCollider boxCollider;
-    public MeshRenderer[] meshs;
+    // public MeshRenderer[] meshs;
+    public SkinnedMeshRenderer[] skinnedMeshs;
     public NavMeshAgent nav;
     public Animator anim;
 
@@ -32,15 +34,16 @@ public class Enemy : MonoBehaviour
     {
         rigid = GetComponent<Rigidbody>();
         boxCollider = GetComponent<BoxCollider>();
-        meshs = GetComponentsInChildren<MeshRenderer>();
+        // meshs = GetComponentsInChildren<MeshRenderer>();
+        skinnedMeshs = GetComponentsInChildren<SkinnedMeshRenderer>();
         nav = GetComponent<NavMeshAgent>();
         anim = GetComponentInChildren<Animator>();
 
-        if(enemyType != Type.D)
-            Invoke("ChaseStart", 2);
+        //if(enemyType != Type.D)
+        Invoke("ChaseStart", 2);
     }
 
-    void ChaseStart()
+    public void ChaseStart()
     {
         isChase = true;
         anim.SetBool("isWalk", true);
@@ -48,14 +51,14 @@ public class Enemy : MonoBehaviour
 
     void Update()
     {
-        if(nav.enabled && enemyType != Type.D)
+        if (nav.enabled) //if (nav.enabled && enemyType != Type.D)
         {
             nav.SetDestination(target.position); 
             nav.isStopped = !isChase; 
         }
     }
 
-    void FreezeVelocity()
+    public void FreezeVelocity()
     {
         if(isChase)
         {
@@ -65,9 +68,9 @@ public class Enemy : MonoBehaviour
     }
 
 
-    void Targeting()
+    public void Targeting()
     {
-        if(!isDead && enemyType != Type.D)
+        if (!isDead) //if(!isDead && enemyType != Type.D)
         {
             float targetRadius = 0; 
             float targetRange = 0;
@@ -75,15 +78,19 @@ public class Enemy : MonoBehaviour
             {
                 case Type.A:
                     targetRadius = 1.5f;
-                    targetRange = 3f;
+                    targetRange = 5f;
                     break;
                 case Type.B:
                     targetRadius = 1.5f; 
-                    targetRange = 12f;
+                    targetRange = 8.5f;
                     break;
                 case Type.C:
                     targetRadius = 0.5f;
                     targetRange = 25f;
+                    break;
+                case Type.D:
+                    targetRadius = 1.5f;
+                    targetRange = 15f;
                     break;
             }
 
@@ -106,7 +113,7 @@ public class Enemy : MonoBehaviour
         switch(enemyType)
         {
             case Type.A:
-                yield return new WaitForSeconds(0.2f);
+                yield return new WaitForSeconds(0.5f);
                 meleeArea.enabled = true;
 
                 yield return new WaitForSeconds(1f);
@@ -115,15 +122,13 @@ public class Enemy : MonoBehaviour
                 yield return new WaitForSeconds(1f);
                 break;
             case Type.B:
-                yield return new WaitForSeconds(0.1f);
-                rigid.AddForce(transform.forward * 20, ForceMode.Impulse); 
-                meleeArea.enabled = true;
-
                 yield return new WaitForSeconds(0.5f);
-                rigid.velocity = Vector3.zero;
-                meleeArea.enabled = false;
+                weaponArea.enabled = true;
 
-                yield return new WaitForSeconds(2f);
+                yield return new WaitForSeconds(1f);
+                weaponArea.enabled = false;
+
+                yield return new WaitForSeconds(1f);
                 break;
             case Type.C:
                 yield return new WaitForSeconds(0.5f);
@@ -131,7 +136,16 @@ public class Enemy : MonoBehaviour
                 Rigidbody rigidbullet = instantBullet.GetComponent<Rigidbody>();
                 rigidbullet.velocity = transform.forward * 20;
 
-                yield return new WaitForSeconds(2f);
+                yield return new WaitForSeconds(1.5f);
+                break;
+            case Type.D:
+                yield return new WaitForSeconds(0.75f);
+                weaponArea.enabled = true;
+
+                yield return new WaitForSeconds(0.75f);
+                weaponArea.enabled = false;
+
+                yield return new WaitForSeconds(1f);
                 break;
         }
         
@@ -179,15 +193,24 @@ public class Enemy : MonoBehaviour
     {
         if(!isDead)
         {
-            foreach (MeshRenderer mesh in meshs)
+            //foreach (MeshRenderer mesh in meshs)
+            //    mesh.material.color = Color.red;
+            foreach (SkinnedMeshRenderer mesh in skinnedMeshs)
                 mesh.material.color = Color.red;
 
             yield return new WaitForSeconds(0.1f);
 
             if (curHealth > 0) 
             {
-                foreach (MeshRenderer mesh in meshs)
-                    mesh.material.color = Color.white;
+                //foreach (MeshRenderer mesh in meshs)
+                //    mesh.material.color = Color.white
+
+         
+                foreach (SkinnedMeshRenderer mesh in skinnedMeshs)
+                    if (mesh.gameObject.CompareTag("BlackMesh"))
+                        mesh.material.color = Color.black;
+                    else
+                        mesh.material.color = Color.white;
 
                 yield return new WaitForSeconds(0.1f);
             }
@@ -198,14 +221,14 @@ public class Enemy : MonoBehaviour
                     yield break;
 
                 isDead = true;
-                foreach (MeshRenderer mesh in meshs)
+                foreach (SkinnedMeshRenderer mesh in skinnedMeshs)
                     mesh.material.color = Color.gray;
                 gameObject.layer = 12; // EnemyDead 레이어 번호 = 12
                                       
                 isChase = false;
                 nav.enabled = false; 
                 anim.SetTrigger("doDie");
-                Debug.Log("몬스터 사망");
+                //Debug.Log("몬스터 사망");
 
                 Player player = target.GetComponent<Player>();
                 player.score += score;

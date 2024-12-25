@@ -393,7 +393,7 @@ public class Player : MonoBehaviour
         if (health <= 0 && !isDead) 
             OnDie();
 
-        yield return new WaitForSeconds(1f); 
+        yield return new WaitForSeconds(2f); 
         isDamage = false;
 
         foreach (MeshRenderer mesh in meshs)
