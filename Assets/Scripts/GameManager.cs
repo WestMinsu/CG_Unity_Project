@@ -2,7 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement; 
+using UnityEngine.SceneManagement;
+using TMPro;
 
 public class GameManager : MonoBehaviour
 {
@@ -12,7 +13,7 @@ public class GameManager : MonoBehaviour
     public Boss boss;
     public GameObject itemShop;
     public GameObject weaponShop;
-    public GameObject startZone;
+    //public GameObject startZone;
     public int stage;
     public float playTime;
     public bool isBattle;
@@ -28,42 +29,51 @@ public class GameManager : MonoBehaviour
     public GameObject menuPanel;
     public GameObject gamePanel;
     public GameObject overPanel;
+    public GameObject shopPotal;
+
     public Text maxScoreTxt;
-    public Text scoreTxt;
-    public Text stageTxt;
-    public Text playTimeTxt;
-    public Text playerHealthTxt;
-    public Text playerAmmoTxt;
-    public Text playerCoinTxt;
+    public TMP_Text scoreTxt;
+    public TMP_Text stageTxt;
+    //public Text playTimeTxt;
+    //public TMP_Text playerHealthTxt;
+    //public TMP_Text playerAmmoTxt;
+    //public TMP_Text playerCoinTxt;
     public Image weapon1Img;
     public Image weapon2Img;
     public Image weapon3Img;
     public Image weaponRImg;
-    public Text enemyATxt;
-    public Text enemyBTxt;
-    public Text enemyCTxt;
+    //public Text enemyATxt;
+    //public Text enemyBTxt;
+    //public Text enemyCTxt;
     public RectTransform bossHealthGroup;
-    public RectTransform bossHealthBar;
-    public Text curScoreText;
-    public Text bestText;
+    public Slider bossHealthBar;
+    public TMP_Text curScoreText;
+    public Text resultScoreText;
+    public GameObject highScore;
 
     void Awake()
     {
         enemyList = new List<int>();
-        maxScoreTxt.text = string.Format("{0:n0}", PlayerPrefs.GetInt("MaxScore"));
+        maxScoreTxt.text = string.Format("High SCORE: {0:n0}", PlayerPrefs.GetInt("MaxScore"));
 
         if (PlayerPrefs.HasKey("MaxScore"))
             PlayerPrefs.SetInt("MaxScore", 0);
+
+        stage = 1;
     }
     public void Practice()
     {
         SceneManager.LoadScene("Practice");
     }
-    public void GameStart() 
-    {
-        menuCam.SetActive(false); 
-        gameCam.SetActive(true);
 
+    public void TermProject()
+    {
+        SceneManager.LoadScene("Map");
+    }
+
+    public void GameStart()
+    {
+        player.gameObject.SetActive(true);
         menuPanel.SetActive(false);
         gamePanel.SetActive(true);
 
@@ -77,43 +87,37 @@ public class GameManager : MonoBehaviour
         curScoreText.text = scoreTxt.text;
 
         int maxScore = PlayerPrefs.GetInt("MaxScore");
-
-        if(player.score > maxScore)
+        Debug.Log(maxScore);
+        string result = scoreTxt.text;
+        //resultScoreText.text = scoreTxt.text;
+        if (player.score > maxScore)
         {
-            bestText.gameObject.SetActive(true);
+            //highScore.SetActive(true);
+            Debug.Log("GameOver, Best Score");
             PlayerPrefs.SetInt("MaxScore", player.score);
+            result = result + " High Score!";
         }
+        resultScoreText.text = result;
     }
 
-    public void Restart() 
+    public void Restart()
     {
-        SceneManager.LoadScene(0); 
+        SceneManager.LoadScene("Map");
     }
 
 
     public void StageStart()
     {
-        itemShop.SetActive(false);
-        weaponShop.SetActive(false);
-        startZone.SetActive(false);
 
-        foreach (Transform zone in enemyZones) 
-            zone.gameObject.SetActive(true);
+        shopPotal.gameObject.SetActive(false);
 
-        isBattle = true; 
+        isBattle = true;
         StartCoroutine(InBattle());
     }
 
     public void StageEnd()
     {
-        player.transform.position = new Vector3(0, 0.7f, 0);
-        itemShop.SetActive(true);
-        weaponShop.SetActive(true);
-        startZone.SetActive(true);
-
-        foreach (Transform zone in enemyZones)
-            zone.gameObject.SetActive(false);
-
+        shopPotal.gameObject.SetActive(true);
         isBattle = false;
         stage++;
     }
@@ -121,7 +125,8 @@ public class GameManager : MonoBehaviour
 
     IEnumerator InBattle()
     {
-        if(stage % 5 == 0)
+
+        if (stage % 5 == 0)
         {
             enemyCntD++;
             GameObject instantEnemy = Instantiate(enemies[3], enemyZones[0].position, enemyZones[0].rotation);
@@ -130,6 +135,7 @@ public class GameManager : MonoBehaviour
             enemy.target = player.transform;
             boss = instantEnemy.GetComponent<Boss>();
         }
+
 
         else
         {
@@ -164,7 +170,7 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        while(enemyCntA + enemyCntB + enemyCntC + enemyCntD > 0)
+        while (enemyCntA + enemyCntB + enemyCntC + enemyCntD > 0)
         {
             yield return null;
         }
@@ -177,52 +183,29 @@ public class GameManager : MonoBehaviour
     {
         if (isBattle)
             playTime += Time.deltaTime;
+        if (boss != null)
+        {
+            float curhp = boss.curHealth;
+            float maxhp = boss.maxHealth;
+            bossHealthGroup.anchoredPosition = Vector3.zero;
+            bossHealthBar.value = curhp / maxhp;
+
+        }
+
+        else
+        {
+            bossHealthGroup.anchoredPosition = Vector3.up * 2000;
+        }
     }
 
-    void LateUpdate() 
+    void LateUpdate()
     {
-        scoreTxt.text = string.Format("{0:n0}", player.score);
+        scoreTxt.text = string.Format("SCORE: {0:n0}", player.score);
         stageTxt.text = "STAGE " + stage;
-
-        int hour = (int)(playTime / 3600);
-        int min = (int)((playTime - hour * 3600) / 60);
-        int sec = (int)playTime % 60;
-
-        playTimeTxt.text = string.Format("{0:00}", hour) + ":" + string.Format("{0:00}", min) + ":" + string.Format("{0:00}", sec);
-        playerHealthTxt.text = player.health + " / " + player.maxHealth;
-        playerCoinTxt.text = string.Format("{0:n0}", player.coin);
-        if (player.equipWeapon == null)
-            playerAmmoTxt.text = "- / " + player.ammo;
-        else if (player.equipWeapon.type == Weapon.Type.Melee)
-            playerAmmoTxt.text = "- / " + player.ammo;
-        else
-            playerAmmoTxt.text = player.equipWeapon.curAmmo + " / " + player.ammo;
 
         // 무기 보유 여부 UI
         weapon1Img.color = new Color(1, 1, 1, player.hasWeapons[0] ? 1 : 0);
         weapon2Img.color = new Color(1, 1, 1, player.hasWeapons[1] ? 1 : 0);
         weapon3Img.color = new Color(1, 1, 1, player.hasWeapons[2] ? 1 : 0);
-        weaponRImg.color = new Color(1, 1, 1, player.hasGrenades > 0 ? 1 : 0);
-
-        // 몬스터 숫자 UI
-        enemyATxt.text = enemyCntA.ToString();
-        enemyBTxt.text = enemyCntB.ToString();
-        enemyCTxt.text = enemyCntC.ToString();
-
-        // 보스 체력바 UI
-        if(boss != null) 
-        {
-            bossHealthGroup.anchoredPosition = Vector3.down * 30;
-            if (boss.curHealth <= 0)
-                bossHealthBar.localScale = new Vector3(0, 1, 1);
-            else
-                bossHealthBar.localScale = new Vector3((float)boss.curHealth / boss.maxHealth, 1, 1);                                                         
-        }
-
-        else
-        {
-            bossHealthGroup.anchoredPosition = Vector3.up * 200;
-        }
-
     }
 }

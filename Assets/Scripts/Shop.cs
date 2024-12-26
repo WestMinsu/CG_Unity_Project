@@ -2,38 +2,57 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 public class Shop : MonoBehaviour
 {
     public RectTransform uiGroup;
-    public Animator anim;
+    //public Animator anim;
 
     public GameObject[] itemObj;
     public int[] itemPrice;
     public Transform[] itemPos;
-    public string[] talkData;
-    public Text talkText; 
+
+    public TMP_Text[] itemNameText;
+    public TMP_Text[] itemPriceText;
+    // public string[] talkData;
+    //public Text talkText; 
 
     Player enterPlayer;
 
+    public GameObject LackOfMoneyNote;
+
+    void Start()
+    {
+        int itemListCount = itemObj.Length;
+
+        for (int i = 0; i < itemListCount; i++)
+        {
+            itemNameText[i].text = itemObj[i].name;
+            itemPriceText[i].text = "X" + itemPrice[i].ToString();
+        }
+    }
+
     public void Enter(Player player)
     {
-        enterPlayer = player; 
+        enterPlayer = player;
+        uiGroup.gameObject.SetActive(true);
         uiGroup.anchoredPosition = Vector3.zero;
     }
 
     public void Exit()
     {
-        anim.SetTrigger("doHello");
-        uiGroup.anchoredPosition = Vector3.down * 1000;
+        //Debug.Log("exit");
+        uiGroup.anchoredPosition = Vector3.down * 2000;
+        uiGroup.gameObject.SetActive(false);
     }
 
-    public void Buy(int index) 
+    public void Buy(int index)
     {
         int price = itemPrice[index];
-        if(price > enterPlayer.coin)
+        if (price > enterPlayer.coin)
         {
-            StopCoroutine(Talk());
-            StartCoroutine(Talk());
+            StopCoroutine(LackOfMoneyAlarm());
+            StartCoroutine(LackOfMoneyAlarm());
             return;
         }
 
@@ -43,10 +62,10 @@ public class Shop : MonoBehaviour
         Instantiate(itemObj[index], itemPos[index].position + ranVec, itemPos[index].rotation);
     }
 
-    IEnumerator Talk()
+    IEnumerator LackOfMoneyAlarm()
     {
-        talkText.text = talkData[1]; // 금액 부족 대사 몇 초간 띄우기
+        LackOfMoneyNote.SetActive(true);
         yield return new WaitForSeconds(2f);
-        talkText.text = talkData[0];
+        LackOfMoneyNote.SetActive(false);
     }
 }

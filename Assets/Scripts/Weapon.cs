@@ -4,23 +4,24 @@ using UnityEngine;
 
 public class Weapon : MonoBehaviour
 {
-    public enum Type { Melee, Range };
+    public enum Type { Melee, Bow, Wand }; // Range 대신 Bow와 Wand로 변경
     public Type type;
     public int damage;
     public float rate;
     public int maxAmmo;
     public int curAmmo;
-   
+
+
+    public Player player;
     public BoxCollider meleeArea;
     public TrailRenderer trailEffect;
     public Transform bulletPos;
     public GameObject bullet;
-    public Transform bulletCasePos;
-    public GameObject bulletCase;
+
 
     void Start()
     {
-        if(meleeArea != null)
+        if (meleeArea != null)
         {
             meleeArea.enabled = false;
         }
@@ -28,22 +29,28 @@ public class Weapon : MonoBehaviour
 
     public void Use()
     {
-        if(type == Type.Melee)
+        if (type == Type.Melee)
         {
-            StopCoroutine("Swing"); 
+            StopCoroutine("Swing");
             StartCoroutine("Swing");
         }
-  
-        else if(type == Type.Range && curAmmo > 0) 
+
+        else if (type == Type.Bow && player.ammo > 0)
         {
-            curAmmo--;
             StartCoroutine("Shot");
+            player.ammo--;
+        }
+
+        else if (type == Type.Wand && player.ammo > 0)
+        {
+            StartCoroutine("Magic");
+            player.ammo--;
         }
     }
 
     IEnumerator Swing()
     {
-        yield return new WaitForSeconds(0.45f); 
+        yield return new WaitForSeconds(0.45f);
         meleeArea.enabled = true;
         trailEffect.enabled = true;
 
@@ -57,17 +64,19 @@ public class Weapon : MonoBehaviour
 
     IEnumerator Shot()
     {
-        //#1. 총알 발사
-        GameObject instantBullet = Instantiate(bullet, bulletPos.position, bulletPos.rotation); 
+        // #1. 화살 발사
+        GameObject instantBullet = Instantiate(bullet, bulletPos.position, bulletPos.rotation);
         Rigidbody bulletRigid = instantBullet.GetComponent<Rigidbody>();
-        bulletRigid.velocity = bulletPos.forward * 50; 
+        bulletRigid.velocity = bulletPos.forward * 50;
         yield return null;
+    }
 
-        //#2. 탄피 배출
-        GameObject instantCase = Instantiate(bulletCase, bulletCasePos.position, bulletCasePos.rotation);
-        Rigidbody caseRigid = instantCase.GetComponent<Rigidbody>();
-        Vector3 caseVec = bulletCasePos.forward * Random.Range(-3, -2) + Vector3.up * Random.Range(2, 3);
-        caseRigid.AddForce(caseVec, ForceMode.Impulse);
-        caseRigid.AddTorque(Vector3.up * 10, ForceMode.Impulse);
+    IEnumerator Magic()
+    {
+        // #2. 아이스볼 발사
+        GameObject instantBullet = Instantiate(bullet, bulletPos.position, bulletPos.rotation);
+        Rigidbody bulletRigid = instantBullet.GetComponent<Rigidbody>();
+        bulletRigid.velocity = bulletPos.forward * 50;
+        yield return null;
     }
 }

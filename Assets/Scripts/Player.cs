@@ -43,13 +43,13 @@ public class Player : MonoBehaviour
     bool sDown2;
     bool sDown3;
 
-    bool isJump; 
+    bool isJump;
     bool isDodge;
     bool isSwap;
     bool isReload;
     bool isFireReady = true;
     bool isBorder;
-    bool isDamage; 
+    bool isDamage;
     bool isShop;
     bool isDead;
 
@@ -58,7 +58,8 @@ public class Player : MonoBehaviour
 
     Rigidbody rigid;
     Animator anim;
-    MeshRenderer[] meshs; 
+    //MeshRenderer[] meshs;
+    SkinnedMeshRenderer[] skinnedMeshs;
 
     GameObject nearObject;
     public Weapon equipWeapon;
@@ -69,7 +70,8 @@ public class Player : MonoBehaviour
     {
         rigid = GetComponent<Rigidbody>();
         anim = GetComponentInChildren<Animator>();
-        meshs = GetComponentsInChildren<MeshRenderer>();
+        skinnedMeshs = GetComponentsInChildren<SkinnedMeshRenderer>();
+        //meshs = GetComponentsInChildren<MeshRenderer>();
     }
 
     void Update()
@@ -78,9 +80,9 @@ public class Player : MonoBehaviour
         Move();
         Turn();
         Jump();
-        Grenade(); 
+        Grenade();
         Attack();
-        Reload();
+        //Reload();
         Dodge();
         Interaction();
         Swap();
@@ -112,10 +114,10 @@ public class Player : MonoBehaviour
             moveVec = Vector3.zero;
 
         if (!isBorder)
-            transform.position += moveVec * speed * (wDown ? 0.3f : 1f) * Time.deltaTime;
+            transform.position += moveVec * speed * (wDown ? 1.5f : 1f) * Time.deltaTime;
 
         anim.SetBool("isRun", moveVec != Vector3.zero);
-        anim.SetBool("isWalk", wDown);
+        anim.SetBool("isSprint", wDown);
     }
 
     void Turn()
@@ -126,12 +128,12 @@ public class Player : MonoBehaviour
         //#2. 마우스에 의한 회전
         if (fDown && !isDead) // 마우스 클릭했을 때만 회전하도록 조건 추가
         {
-            Ray ray = followCamera.ScreenPointToRay(Input.mousePosition); 
-            RaycastHit rayHit; 
-            if (Physics.Raycast(ray, out rayHit, 100)) 
+            Ray ray = followCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit rayHit;
+            if (Physics.Raycast(ray, out rayHit, 100))
             {
-                Vector3 nextVec = rayHit.point - transform.position; 
-                nextVec.y = 0; 
+                Vector3 nextVec = rayHit.point - transform.position;
+                nextVec.y = 0;
                 transform.LookAt(transform.position + nextVec);
             }
         }
@@ -142,7 +144,7 @@ public class Player : MonoBehaviour
         if (jDown && moveVec == Vector3.zero && !isJump && !isDodge && !isSwap && !isDead)
         {
             rigid.AddForce(Vector3.up * 15, ForceMode.Impulse);
-            anim.SetBool("isJump", true); 
+            anim.SetBool("isJump", true);
             anim.SetTrigger("doJump");
             isJump = true;
 
@@ -157,12 +159,12 @@ public class Player : MonoBehaviour
 
         if (gDown && !isReload && !isSwap && !isDead)
         {
-            Ray ray = followCamera.ScreenPointToRay(Input.mousePosition); 
-            RaycastHit rayHit; 
+            Ray ray = followCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit rayHit;
             if (Physics.Raycast(ray, out rayHit, 100))
             {
-                Vector3 nextVec = rayHit.point - transform.position; 
-                nextVec.y = 10; 
+                Vector3 nextVec = rayHit.point - transform.position;
+                nextVec.y = 10;
 
                 GameObject instantGrenade = Instantiate(grenadeObj, transform.position, transform.rotation);
                 Rigidbody rigidGrenade = instantGrenade.GetComponent<Rigidbody>();
@@ -186,35 +188,43 @@ public class Player : MonoBehaviour
         if (fDown && isFireReady && !isDodge && !isSwap && !isShop && !isDead)
         {
             equipWeapon.Use();
-            anim.SetTrigger(equipWeapon.type == Weapon.Type.Melee ? "doSwing" : "doShot");
 
-            //if (equipWeapon.type == Weapon.Type.Melee)
-            //    meleeAttackSound.Play();
-            //else
-            //    rangeAttackSound.Play();
+            // 동작 3가지로 개편
+            anim.SetTrigger(
+                equipWeapon.type == Weapon.Type.Melee ? "doSwing" :
+                equipWeapon.type == Weapon.Type.Bow ? "doShot" :
+                "doMagic"
+            );
+
+            // if (equipWeapon.type == Weapon.Type.Melee)
+            //     meleeAttackSound.Play();
+            // else if (equipWeapon.type == Weapon.Type.Bow)
+            //     rangeAttackSound.Play();
+            // else
+            //     magicAttackSound.Play();
 
             fireDelay = 0;
         }
     }
 
-    void Reload()
-    {
-        if (equipWeapon == null)
-            return;
-        if (equipWeapon.type == Weapon.Type.Melee)
-            return;
-        if (ammo == 0)
-            return;
-        if (rDown && !isJump && !isDodge && !isSwap && isFireReady && !isShop && !isDead)
-        {
-            anim.SetTrigger("doReload");
-            isReload = true;
+    //void Reload()
+    //{
+    //    if (equipWeapon == null)
+    //        return;
+    //    if (equipWeapon.type == Weapon.Type.Melee)
+    //        return;
+    //    if (ammo == 0)
+    //        return;
+    //    if (rDown && !isJump && !isDodge && !isSwap && isFireReady && !isShop && !isDead)
+    //    {
+    //        anim.SetTrigger("doReload");
+    //        isReload = true;
 
-            //reloadSound.Play();
+    //        //reloadSound.Play();
 
-            Invoke("ReloadOut", 3f);
-        }
-    }
+    //        Invoke("ReloadOut", 3f);
+    //    }
+    //}
 
     void ReloadOut()
     {
@@ -252,7 +262,7 @@ public class Player : MonoBehaviour
             {
                 Item item = nearObject.GetComponent<Item>();
                 int weaponIndex = item.value;
-                hasWeapons[weaponIndex] = true; 
+                hasWeapons[weaponIndex] = true;
 
                 Destroy(nearObject);
             }
@@ -260,8 +270,8 @@ public class Player : MonoBehaviour
             else if (nearObject.tag == "Shop")
             {
                 Shop shop = nearObject.GetComponent<Shop>();
-                shop.Enter(this); 
-                isShop = true; 
+                shop.Enter(this);
+                isShop = true;
             }
         }
     }
@@ -315,7 +325,7 @@ public class Player : MonoBehaviour
         isBorder = Physics.Raycast(transform.position, transform.forward, 5, LayerMask.GetMask("Wall"));
     }
 
-    void FixedUpdate() 
+    void FixedUpdate()
     {
         FreezeRotation();
         StopToWall();
@@ -362,11 +372,11 @@ public class Player : MonoBehaviour
             Destroy(other.gameObject);
         }
 
-        else if (other.tag == "EnemyBullet") 
+        else if (other.tag == "EnemyBullet")
         {
             if (!isDamage)
             {
-                Bullet enemyBullet = other.GetComponent<Bullet>(); 
+                Bullet enemyBullet = other.GetComponent<Bullet>();
                 health -= enemyBullet.damage;
 
                 bool isBossAtk = other.name == "Boss Melee Area";
@@ -382,24 +392,32 @@ public class Player : MonoBehaviour
     IEnumerator OnDamage(bool isBossAtk)
     {
         isDamage = true;
-        foreach (MeshRenderer mesh in meshs)
-        {
-            mesh.material.color = Color.yellow;
-        }
+        //foreach (SkinnedMeshRenderer mesh in skinnedMeshs)
+        //{
+        //    mesh.material.color = Color.yellow;
+        //}
+        //foreach (MeshRenderer mesh in meshs)
+        //{
+        //    mesh.material.color = Color.yellow;
+        //}
 
         if (isBossAtk)
-            rigid.AddForce(transform.forward * -25, ForceMode.Impulse); 
+            rigid.AddForce(transform.forward * -25, ForceMode.Impulse);
 
-        if (health <= 0 && !isDead) 
+        if (health <= 0 && !isDead)
             OnDie();
 
-        yield return new WaitForSeconds(2f); 
+        yield return new WaitForSeconds(2f);
         isDamage = false;
 
-        foreach (MeshRenderer mesh in meshs)
-        {
-            mesh.material.color = Color.white;
-        }
+        //foreach (skinnedmeshrenderer mesh in skinnedmeshs)
+        //{
+        //    mesh.material.color = color.black;
+        //}
+        //foreach (meshrenderer mesh in meshs)
+        //{
+        //    mesh.material.color = color.white;
+        //}
 
         if (isBossAtk)
             rigid.velocity = Vector3.zero;
@@ -408,7 +426,7 @@ public class Player : MonoBehaviour
     void OnDie()
     {
         anim.SetTrigger("doDie");
-        isDead = true; 
+        isDead = true;
         manager.GameOver();
     }
 
@@ -424,7 +442,7 @@ public class Player : MonoBehaviour
             nearObject = null;
         else if (other.tag == "Shop")
         {
-            Shop shop = nearObject.GetComponent<Shop>(); 
+            Shop shop = nearObject.GetComponent<Shop>();
             shop.Exit();
             isShop = false;
             nearObject = null;
